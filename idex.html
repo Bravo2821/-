@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>货货统计宝</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>货货统计宝</h1>
+    <textarea id="inputData" placeholder="粘贴你的货品记录"></textarea>
+    <button onclick="analyzeData()">分析数据</button>
+
+    <h2>明细表</h2>
+    <table id="detailsTable">
+        <tr>
+            <th>日期</th>
+            <th>店名</th>
+            <th>代码</th>
+            <th>颜色</th>
+            <th>数量</th>
+            <th>备注</th>
+        </tr>
+    </table>
+
+    <h2>款式汇总</h2>
+    <table id="summaryTable">
+        <tr>
+            <th>代码</th>
+            <th>颜色</th>
+            <th>总数量</th>
+        </tr>
+    </table>
+
+    <script>
+        function analyzeData() {
+            const data = document.getElementById('inputData').value;
+            const lines = data.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const records = [];
+            const itemPattern = /([A-Z0-9\u4e00-\u9fa5]+)\s*([\u4e00-\u9fa5]+)[xX]?(\d+)\s*(.*)/;
+            const datePattern = /\d{1,2}[/-]\d{1,2}/;
+            let currentDate = '';
+            let currentShop = '';
+
+            lines.forEach(line => {
+                if (datePattern.test(line)) {
+                    currentDate = line.replace('-', '/');
+                } else if (!/\d/.test(line)) {
+                    currentShop = line;
+                } else {
+                    const match = itemPattern.exec(line);
+                    if (match) {
+                        const [_, code, color, qty, remark] = match;
+                        records.push({
+                            date: currentDate,
+                            shop: currentShop,
+                            code: code,
+                            color: color,
+                            qty: parseInt(qty, 10),
+                            remark: remark || ''
+                        });
+                    }
+                }
+            });
+
+            const detailsTable = document.getElementById('detailsTable');
+            const summaryTable = document.getElementById('summaryTable');
+
+            // Clear previous tables
+            detailsTable.innerHTML = `
+                <tr>
+                    <th>日期</th>
+                    <th>店名</th>
+                    <th>代码</th>
+                    <th>颜色</th>
+                    <th>数量</th>
+                    <th>备注</th>
+                </tr>`;
+            summaryTable.innerHTML = `
+                <tr>
+                    <th>代码</th>
+                    <th>颜色</th>
+                    <th>总数量</th>
+                </tr>`;
+
+            // Populate details table
+            records.forEach(record => {
+                const row = detailsTable.insertRow();
+                row.insertCell(0).innerText = record.date;
+                row.insertCell(1).innerText = record.shop;
+                row.insertCell(2).innerText = record.code;
+                row.insertCell(3).innerText = record.color;
+                row.insertCell(4).innerText = record.qty;
+                row.insertCell(5).innerText = record.remark;
+            });
+
+            // Populate summary table
+            const summary = {};
+            records.forEach(record => {
+                const key = `${record.code}-${record.color}`;
+                if (!summary[key]) {
+                    summary[key] = 0;
+                }
+                summary[key] += record.qty;
+            });
+
+            for (const key in summary) {
+                const [code, color] = key.split('-');
+                const row = summaryTable.insertRow();
+                row.insertCell(0).innerText = code;
+                row.insertCell(1).innerText = color;
+                row.insertCell(2).innerText = summary[key];
+            }
+        }
+    </script>
+</body>
+</html>
